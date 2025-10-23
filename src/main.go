@@ -157,6 +157,10 @@ func handleHotkey() {
 		if err := sendTextToActiveWindow(text); err != nil {
 			log.Printf("Error sending text: %v", err)
 			mStatus.SetTitle("Error: Failed to type")
+
+			// Show user-friendly error dialog
+			errorMsg := "GoWhisper needs Accessibility permissions to type text.\n\nPlease go to:\nSystem Settings → Privacy & Security → Accessibility\n\nAnd add your Terminal app to the allowed list."
+			showErrorDialog("Accessibility Permission Required", errorMsg)
 			return
 		}
 
@@ -210,6 +214,19 @@ func sendTextToActiveWindow(text string) error {
 
 	log.Printf("Successfully sent text: %s", text)
 	return nil
+}
+
+// showErrorDialog displays an error dialog to the user
+func showErrorDialog(title, message string) {
+	// AppleScript to show a dialog
+	script := `
+		display dialog "` + message + `" with title "` + title + `" buttons {"OK"} default button "OK" with icon caution
+	`
+
+	cmd := exec.Command("osascript", "-e", script)
+	if err := cmd.Run(); err != nil {
+		log.Printf("Failed to show error dialog: %v", err)
+	}
 }
 
 // getIconReady returns icon for ready state (small circle)
