@@ -37,7 +37,7 @@ cd /path/to/go-whisper
 ./build.sh
 
 # 6. Launch
-./bin/go-whisper-launcher.sh
+./bin/run.sh
 ```
 
 **Note**: Whisper.cpp build takes ~5 minutes. The model download is 487MB.
@@ -111,12 +111,12 @@ cd go-whisper
 
 **6. Run GoWhisper**
 ```bash
-./bin/go-whisper-launcher.sh
+./bin/run.sh
 ```
 
 ## Usage
 
-1. Launch the application using `./bin/go-whisper-launcher.sh`
+1. Launch the application using `./bin/run.sh`
 2. Look for "GW ●" in your menu bar
 3. Press **Cmd+Shift+H** to start recording (indicator changes to "GW 🔴")
 4. Speak clearly into your microphone
@@ -145,7 +145,7 @@ On first use, you'll need to grant:
 
 **App won't start after reboot**
 - Whisper.cpp and the model are in `~/.go-whisper/` and will survive reboots
-- Just run `./bin/go-whisper-launcher.sh` again
+- Just run `./bin/run.sh` again
 
 ## Architecture
 

@@ -47,8 +47,8 @@ fi
 chmod +x bin/GoWhisper
 
 # Create a wrapper script that sets up the environment
-echo -e "${YELLOW}Creating launcher script...${NC}"
-cat > bin/go-whisper-launcher.sh << 'LAUNCHER_EOF'
+echo -e "${YELLOW}Creating run script...${NC}"
+cat > bin/run.sh << 'LAUNCHER_EOF'
 #!/bin/bash
 
 # GoWhisper Launcher
@@ -94,7 +94,7 @@ else
 fi
 LAUNCHER_EOF
 
-chmod +x bin/go-whisper-launcher.sh
+chmod +x bin/run.sh
 
 # Show binary size
 BINARY_SIZE=$(du -h bin/GoWhisper | cut -f1)
@@ -105,7 +105,7 @@ echo "Binary location: bin/GoWhisper"
 echo "Binary size: $BINARY_SIZE"
 echo ""
 echo "To run:"
-echo "  ./bin/go-whisper-launcher.sh"
+echo "  ./bin/run.sh"
 echo ""
 echo "Or directly:"
 echo "  export DYLD_LIBRARY_PATH=\"\$HOME/.go-whisper/whisper.cpp/build/src:\$HOME/.go-whisper/whisper.cpp/build/ggml/src:\$HOME/.go-whisper/whisper.cpp/build/ggml/src/ggml-metal:\$HOME/.go-whisper/whisper.cpp/build/ggml/src/ggml-blas\""
