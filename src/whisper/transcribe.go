@@ -12,8 +12,7 @@ import (
 
 // Transcriber handles audio transcription using Whisper
 type Transcriber struct {
-	model   whispergo.Model
-	context whispergo.Context
+	model whispergo.Model
 }
 
 // NewTranscriber creates a new transcriber with the specified model
@@ -33,20 +32,8 @@ func NewTranscriber(modelPath string) (*Transcriber, error) {
 		return nil, fmt.Errorf("failed to load model: %w", err)
 	}
 
-	// Create context
-	context, err := model.NewContext()
-	if err != nil {
-		model.Close()
-		return nil, fmt.Errorf("failed to create context: %w", err)
-	}
-
-	// Configure context parameters for better transcription
-	// Note: ggml-small.en.bin is English-only, so we don't set language
-	context.SetThreads(4) // Use 4 threads for faster processing
-
 	return &Transcriber{
-		model:   model,
-		context: context,
+		model: model,
 	}, nil
 }
 
@@ -56,21 +43,33 @@ func (t *Transcriber) Transcribe(samples []float32) (string, error) {
 		return "", fmt.Errorf("no audio samples provided")
 	}
 
+	// Create a fresh context for each transcription
+	context, err := t.model.NewContext()
+	if err != nil {
+		return "", fmt.Errorf("failed to create context: %w", err)
+	}
+
+	// Configure context parameters
+	context.SetThreads(4) // Use 4 threads for faster processing
+	context.ResetTimings()
+
 	// Process the audio data
-	if err := t.context.Process(samples, nil, nil, nil); err != nil {
+	if err := context.Process(samples, nil, nil, nil); err != nil {
 		return "", fmt.Errorf("failed to process audio: %w", err)
 	}
 
 	// Collect all segments into a single string
 	var result strings.Builder
+	segmentCount := 0
 	for {
-		segment, err := t.context.NextSegment()
+		segment, err := context.NextSegment()
 		if err == io.EOF {
 			break
 		} else if err != nil {
 			return "", fmt.Errorf("error getting segment: %w", err)
 		}
 
+		segmentCount++
 		// Trim whitespace and add to result
 		text := strings.TrimSpace(segment.Text)
 		if text != "" {
@@ -79,6 +78,11 @@ func (t *Transcriber) Transcribe(samples []float32) (string, error) {
 			}
 			result.WriteString(text)
 		}
+	}
+
+	// Log if no segments were returned at all
+	if segmentCount == 0 {
+		return "", fmt.Errorf("whisper returned no segments")
 	}
 
 	return result.String(), nil
