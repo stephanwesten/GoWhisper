@@ -33,3 +33,51 @@ go run poc/test_whisper.go ~/.go-whisper/models/ggml-small.en.bin /tmp/whisper.c
 ```
 
 **Status**: ✅ Working - Whisper integration verified
+
+---
+
+## test_audio_record.go
+
+Tests audio recording from microphone using PortAudio.
+
+**Purpose**: Verify that we can capture audio from the microphone and save it to a WAV file in the format required by Whisper (16kHz, mono, 16-bit PCM).
+
+**Prerequisites**:
+- PortAudio installed: `brew install portaudio`
+- Microphone access permission granted to Terminal
+
+**Usage**:
+```bash
+go run poc/test_audio_record.go <duration_seconds> <output.wav>
+
+# Example: Record 5 seconds of audio
+go run poc/test_audio_record.go 5 /tmp/test_recording.wav
+```
+
+**Expected output**:
+```
+2025/10/23 19:54:49 Recording for 5 seconds to /tmp/test_recording.wav...
+2025/10/23 19:54:49 Speak into your microphone!
+2025/10/23 19:54:57 Recording time completed
+2025/10/23 19:54:57 Recorded 79995 samples (5.00 seconds)
+2025/10/23 19:54:57 Audio saved to /tmp/test_recording.wav
+2025/10/23 19:54:57 ✅ Test completed successfully!
+```
+
+**Testing with Whisper**:
+After recording, you can test transcription:
+```bash
+# Record audio
+go run poc/test_audio_record.go 5 /tmp/test.wav
+
+# Transcribe with Whisper (use env vars from test_whisper.go)
+go run poc/test_whisper.go ~/.go-whisper/models/ggml-small.en.bin /tmp/test.wav
+```
+
+**Audio format**:
+- Sample rate: 16kHz (Whisper requirement)
+- Channels: Mono (1 channel)
+- Bit depth: 16-bit PCM
+- Format: WAV
+
+**Status**: ✅ Working - Audio recording verified and tested with Whisper transcription
