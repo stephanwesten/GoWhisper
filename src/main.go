@@ -5,8 +5,16 @@ import (
 	"os/exec"
 
 	"github.com/getlantern/systray"
+	"github.com/stephanwesten/go-whisper/src/audio"
+	"github.com/stephanwesten/go-whisper/src/whisper"
 	"golang.design/x/hotkey"
 	"golang.design/x/hotkey/mainthread"
+)
+
+var (
+	recorder    *audio.Recorder
+	transcriber *whisper.Transcriber
+	mStatus     *systray.MenuItem
 )
 
 func main() {
@@ -18,14 +26,28 @@ func fn() {
 }
 
 func onReady() {
-	// Set the menu bar icon (using a simple dot as placeholder)
-	// In production, we'll use a proper microphone icon
+	// Set the menu bar icon
 	systray.SetIcon(getIcon())
 	systray.SetTitle("GoWhisper")
 	systray.SetTooltip("Voice to Terminal")
 
+	// Initialize audio recorder
+	var err error
+	recorder, err = audio.NewRecorder()
+	if err != nil {
+		log.Fatalf("Failed to initialize recorder: %v", err)
+	}
+
+	// Initialize Whisper transcriber
+	transcriber, err = whisper.NewTranscriber("~/.go-whisper/models/ggml-small.en.bin")
+	if err != nil {
+		log.Fatalf("Failed to initialize transcriber: %v", err)
+	}
+	log.Println("Whisper model loaded successfully")
+
 	// Add menu items
-	mListen := systray.AddMenuItem("Listen (⌘⇧H)", "Listen and transcribe voice")
+	mStatus = systray.AddMenuItem("Ready", "Current status")
+	mStatus.Disable()
 	systray.AddSeparator()
 	mQuit := systray.AddMenuItem("Quit", "Quit the application")
 
@@ -55,10 +77,7 @@ func onReady() {
 	// Process triggers one at a time
 	go func() {
 		for range triggerCh {
-			log.Println("Hotkey pressed: Cmd+Shift+H")
-			if err := sendTextToActiveWindow("hello"); err != nil {
-				log.Printf("Error sending text via hotkey: %v", err)
-			}
+			handleHotkey()
 		}
 	}()
 
@@ -66,11 +85,6 @@ func onReady() {
 	go func() {
 		for {
 			select {
-			case <-mListen.ClickedCh:
-				log.Println("Listen clicked")
-				if err := sendTextToActiveWindow("hello"); err != nil {
-					log.Printf("Error sending text: %v", err)
-				}
 			case <-mQuit.ClickedCh:
 				log.Println("Quit clicked")
 				hk.Unregister()
@@ -80,15 +94,87 @@ func onReady() {
 	}()
 }
 
+func handleHotkey() {
+	if recorder.IsRecording() {
+		// Stop recording and transcribe
+		log.Println("Stopping recording...")
+		mStatus.SetTitle("Processing...")
+
+		samples, err := recorder.Stop()
+		if err != nil {
+			log.Printf("Error stopping recording: %v", err)
+			mStatus.SetTitle("Error: Failed to stop recording")
+			return
+		}
+
+		log.Printf("Recorded %d samples (%.2f seconds)", len(samples), float64(len(samples))/float64(audio.SampleRate))
+
+		if len(samples) < audio.SampleRate/2 { // Less than 0.5 seconds
+			log.Println("Recording too short, ignoring")
+			mStatus.SetTitle("Ready")
+			return
+		}
+
+		// Transcribe
+		log.Println("Transcribing...")
+		mStatus.SetTitle("Transcribing...")
+
+		text, err := transcriber.Transcribe(samples)
+		if err != nil {
+			log.Printf("Error transcribing: %v", err)
+			mStatus.SetTitle("Error: Transcription failed")
+			return
+		}
+
+		log.Printf("Transcription: %s", text)
+
+		if text == "" {
+			log.Println("No speech detected")
+			mStatus.SetTitle("Ready")
+			return
+		}
+
+		// Send to active window
+		mStatus.SetTitle("Typing...")
+		if err := sendTextToActiveWindow(text); err != nil {
+			log.Printf("Error sending text: %v", err)
+			mStatus.SetTitle("Error: Failed to type")
+			return
+		}
+
+		log.Println("Successfully sent transcribed text")
+		mStatus.SetTitle("Ready")
+
+	} else {
+		// Start recording
+		log.Println("Starting recording...")
+		mStatus.SetTitle("🎤 Recording...")
+
+		if err := recorder.Start(); err != nil {
+			log.Printf("Error starting recording: %v", err)
+			mStatus.SetTitle("Error: Failed to start")
+			return
+		}
+
+		log.Println("Recording started - press Cmd+Shift+H again to stop")
+	}
+}
+
 func onExit() {
 	// Cleanup when app exits
+	log.Println("Cleaning up...")
+	if recorder != nil {
+		recorder.Close()
+	}
+	if transcriber != nil {
+		transcriber.Close()
+	}
 	log.Println("GoWhisper menu bar app exiting")
 }
 
 // sendTextToActiveWindow sends text to the currently active window using AppleScript
 func sendTextToActiveWindow(text string) error {
 	// AppleScript to send keystrokes to the frontmost application
-	// This uses System Events to type the text
 	script := `
 		tell application "System Events"
 			keystroke "` + text + `"
@@ -107,7 +193,6 @@ func sendTextToActiveWindow(text string) error {
 }
 
 // getIcon returns a simple icon for the menu bar
-// This is a 16x16 black circle as a placeholder
 func getIcon() []byte {
 	// Simple PNG icon data (black circle on transparent background)
 	// TODO: Replace with proper microphone icon
