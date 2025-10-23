@@ -455,6 +455,44 @@ On first run, grant permissions:
 - [ ] Model selection (tiny/base/small/medium)
 - [ ] Local LLM integration for command correction
 
+## Known Issues & Workarounds
+
+### Hotkey System Beep (Pre-MVP)
+**Issue**: When pressing the global hotkey (Cmd+Shift+H), macOS produces a system beep sound along with the text injection.
+
+**Status**: Known cosmetic issue, does not affect functionality.
+
+**Cause**: The hotkey library (`golang.design/x/hotkey`) registers the hotkey successfully, but macOS still plays a system sound when the key combination is pressed. This may be related to how the hotkey is intercepted at the system level.
+
+**Attempted Solutions**:
+- Tried multiple hotkey combinations:
+  - Cmd+Shift+L: Had beep issue
+  - Cmd+Shift+V: Conflicted with paste special
+  - Option+Cmd+Space: Reserved by macOS (Spotlight)
+  - Ctrl+Shift+Space: Reserved by macOS (search)
+  - Option+Cmd+V: Opened new terminal tab
+  - **Cmd+Shift+H**: Works but has beep (current choice)
+
+**Potential Post-MVP Solutions**:
+1. **Try robotgo library** (`github.com/go-vgo/robotgo`)
+   - Alternative Go library for keyboard/mouse automation
+   - May have better macOS integration
+   - Supports global event listeners
+   - Trade-off: Larger dependency, requires GCC
+
+2. **Native CGO to Carbon/Cocoa**
+   - Use macOS Carbon Event Manager or Cocoa APIs directly
+   - Lower-level control over hotkey registration
+   - May be able to suppress system beep
+   - Trade-off: More complex, platform-specific code
+
+3. **Make hotkey configurable**
+   - Let users choose their own hotkey combination
+   - Some combinations may not produce beep
+   - Trade-off: More complex settings UI
+
+**Decision**: Accept beep for MVP, revisit in Post-MVP Phase 1.
+
 ## Risk Mitigation
 
 ### Technical Risks
@@ -470,12 +508,18 @@ On first run, grant permissions:
 4. **Performance**: Whisper small may be too slow
    - Mitigation: Start with small, make model configurable
 
+5. **Hotkey System Beep**: Global hotkey triggers macOS system beep
+   - Mitigation: Accept for MVP, explore robotgo or native CGO in Post-MVP
+
 ### User Experience Risks
 1. **Permission Prompts**: Users may deny accessibility access
    - Mitigation: Clear onboarding, explain why permissions needed
 
 2. **Model Download**: 500MB is large for first-time users
    - Mitigation: Progress indicator, explain one-time download
+
+3. **Hotkey Conflicts**: Some key combinations reserved by macOS
+   - Mitigation: Document known conflicts, make configurable in Post-MVP
 
 ## License & Credits
 - MIT License
