@@ -40,6 +40,10 @@ func NewTranscriber(modelPath string) (*Transcriber, error) {
 		return nil, fmt.Errorf("failed to create context: %w", err)
 	}
 
+	// Configure context parameters for better transcription
+	// Note: ggml-small.en.bin is English-only, so we don't set language
+	context.SetThreads(4) // Use 4 threads for faster processing
+
 	return &Transcriber{
 		model:   model,
 		context: context,
