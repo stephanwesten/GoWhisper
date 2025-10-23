@@ -19,11 +19,13 @@ go.work
 
 # Logs
 *.log
-/tmp/
 
-# Whisper models (large files)
+# Whisper models (large files - users download separately)
 models/
 *.bin
+
+# whisper.cpp (users build separately)
+whisper.cpp/
 
 # IDE
 .vscode/
@@ -34,3 +36,8 @@ models/
 
 # Temporary files
 /tmp/
+tmp/
+
+# Claude artifacts
+CLAUDE.md
+.claude/

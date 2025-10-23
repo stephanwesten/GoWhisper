@@ -1,0 +1,153 @@
+BSL License
+
+Copyright (c) 2025 GoWhisper Contributors
+
+You may use and modify this software freely, except if you sell it or offer it as a managed service.
+Bottom-line, do not try to make money out of this. Use it for your own development pleasure.
+
+================================================================================
+THIRD-PARTY COMPONENTS
+================================================================================
+
+This software includes the following third-party components, each with their
+respective licenses:
+
+--------------------------------------------------------------------------------
+whisper.cpp
+--------------------------------------------------------------------------------
+License: MIT License
+Copyright: The ggml authors (2023-2024)
+Repository: https://github.com/ggml-org/whisper.cpp
+
+Port of OpenAI's Whisper model in C/C++ with Metal GPU acceleration support.
+
+--------------------------------------------------------------------------------
+golang.design/x/hotkey
+--------------------------------------------------------------------------------
+License: MIT License
+Copyright: © 2021 The golang.design Initiative Authors (Changkun Ou)
+Repository: https://github.com/golang-design/hotkey
+
+Cross-platform hotkey package for Go applications.
+
+--------------------------------------------------------------------------------
+gordonklaus/portaudio
+--------------------------------------------------------------------------------
+License: MIT License
+Copyright: Gordon Klaus (2017)
+Repository: https://github.com/gordonklaus/portaudio
+
+Go bindings for the PortAudio audio I/O library.
+
+--------------------------------------------------------------------------------
+getlantern/systray
+--------------------------------------------------------------------------------
+License: Apache License 2.0
+Copyright: Lantern
+Repository: https://github.com/getlantern/systray
+
+Cross-platform Go library to place an icon and menu in the notification area.
+
+--------------------------------------------------------------------------------
+atotto/clipboard
+--------------------------------------------------------------------------------
+License: BSD-style License
+Copyright: @atotto (2013)
+Repository: https://github.com/atotto/clipboard
+
+Clipboard management for Go applications.
+
+--------------------------------------------------------------------------------
+golang.design/x/mainthread
+--------------------------------------------------------------------------------
+License: MIT License
+Copyright: © 2021 The golang.design Initiative Authors
+Repository: https://github.com/golang-design/mainthread
+
+Go package for running functions on the main thread.
+
+--------------------------------------------------------------------------------
+Go Standard Library (golang.org/x/sys)
+--------------------------------------------------------------------------------
+License: BSD 3-Clause License
+Copyright: The Go Authors
+Repository: https://go.googlesource.com/sys
+
+Extended Go system packages.
+
+--------------------------------------------------------------------------------
+PortAudio (Native Library)
+--------------------------------------------------------------------------------
+License: MIT-style License
+Copyright: PortAudio community
+Website: http://www.portaudio.com/
+
+Cross-platform audio I/O library.
+
+================================================================================
+LICENSE TEXTS
+================================================================================
+
+MIT License
+-----------
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Apache License 2.0
+------------------
+Full text available at: https://www.apache.org/licenses/LICENSE-2.0
+
+BSD 3-Clause License
+--------------------
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its
+   contributors may be used to endorse or promote products derived from
+   this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+================================================================================
+COMPLIANCE STATEMENT
+================================================================================
+
+All third-party components listed above are used in accordance with their
+respective licenses. The licenses of these components (MIT, Apache-2.0, BSD)
+are permissive and allow their inclusion in software distributed under more
+restrictive licenses, such as the BSL-style license governing this project.
+
+The GoWhisper project's BSL-style license applies only to the original code
+written for this project and does not supersede or modify the licenses of the
+third-party components listed above.
