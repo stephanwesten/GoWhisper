@@ -215,7 +215,7 @@ A native macOS menu bar application written in Go that provides voice-to-text tr
 - Command history integration
 - Shell-specific context awareness
 - Keyboard shortcuts for common operations
-- Customizable hotkeys
+- Configurable hotkey (allow users to customize recording hotkey beyond Cmd+Shift+P)
 
 ## Model Comparison & Selection
 
