@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os/exec"
+	"sync"
 	"time"
 
 	"github.com/getlantern/systray"
@@ -18,12 +19,38 @@ const (
 	processingIndicator = "Processing"
 )
 
+// AppState represents the current state of the application
+type AppState int
+
+const (
+	StateIdle AppState = iota
+	StateRecording
+	StateProcessing
+)
+
+func (s AppState) String() string {
+	switch s {
+	case StateIdle:
+		return "Idle"
+	case StateRecording:
+		return "Recording"
+	case StateProcessing:
+		return "Processing"
+	default:
+		log.Fatalf("Unknown state: %d", s)
+		return "" // unreachable
+	}
+}
+
 var (
 	recorder      *audio.Recorder
 	transcriber   *whisper.Transcriber
 	mStatus       *systray.MenuItem
 	stopAnimation chan bool
-	isProcessing  bool // Prevent re-entrant hotkey handling
+
+	// State machine with mutex protection
+	stateMu      sync.Mutex
+	currentState AppState = StateIdle
 )
 
 func main() {
@@ -105,16 +132,54 @@ func onReady() {
 	}()
 }
 
+// getState returns the current application state (thread-safe)
+func getState() AppState {
+	stateMu.Lock()
+	defer stateMu.Unlock()
+	return currentState
+}
+
+// setState transitions to a new state (thread-safe)
+func setState(newState AppState) {
+	stateMu.Lock()
+	defer stateMu.Unlock()
+	oldState := currentState
+	currentState = newState
+	log.Printf("State transition: %s -> %s", oldState, newState)
+}
+
+// tryTransitionState attempts to transition from expectedState to newState
+// Returns true if successful, false if current state doesn't match expectedState
+func tryTransitionState(expectedState, newState AppState) bool {
+	stateMu.Lock()
+	defer stateMu.Unlock()
+	if currentState != expectedState {
+		log.Printf("State transition rejected: expected %s, but current is %s", expectedState, currentState)
+		return false
+	}
+	oldState := currentState
+	currentState = newState
+	log.Printf("State transition: %s -> %s", oldState, newState)
+	return true
+}
+
 func handleHotkey() {
-	// Ignore hotkey presses while already processing
-	if isProcessing {
+	state := getState()
+
+	// Ignore hotkey presses while processing
+	if state == StateProcessing {
 		log.Println("Already processing, ignoring hotkey")
 		return
 	}
 
-	if recorder.IsRecording() {
+	if state == StateRecording {
+		// Transition to processing state
+		if !tryTransitionState(StateRecording, StateProcessing) {
+			log.Println("Failed to transition to Processing state")
+			return
+		}
+
 		// Stop recording and transcribe
-		isProcessing = true
 		log.Println("Stopping recording...")
 		stopRecordingAnimation()
 		systray.SetTitle("◉")
@@ -139,7 +204,7 @@ func handleHotkey() {
 		if err != nil {
 			log.Printf("Error stopping recording: %v", err)
 			mStatus.SetTitle("Error: Failed to stop recording")
-			isProcessing = false
+			setState(StateIdle)
 			return
 		}
 
@@ -165,7 +230,7 @@ func handleHotkey() {
 		if len(samples) < audio.SampleRate/2 { // Less than 0.5 seconds
 			log.Println("Recording too short, ignoring")
 			mStatus.SetTitle("Ready")
-			isProcessing = false
+			setState(StateIdle)
 			return
 		}
 
@@ -178,7 +243,7 @@ func handleHotkey() {
 			log.Printf("Error transcribing: %v", err)
 			mStatus.SetTitle("Error: Transcription failed")
 			log.Println("✗ Transcription failed")
-			isProcessing = false
+			setState(StateIdle)
 			return
 		}
 
@@ -187,7 +252,7 @@ func handleHotkey() {
 		if text == "" {
 			log.Println("No speech detected")
 			mStatus.SetTitle("Ready")
-			isProcessing = false
+			setState(StateIdle)
 			return
 		}
 
@@ -206,15 +271,21 @@ func handleHotkey() {
 			// Show user-friendly error dialog
 			errorMsg := "GoWhisper needs Accessibility permissions to type text.\n\nPlease go to:\nSystem Settings → Privacy & Security → Accessibility\n\nAnd add your Terminal app to the allowed list."
 			showErrorDialog("Accessibility Permission Required", errorMsg)
-			isProcessing = false
+			setState(StateIdle)
 			return
 		}
 
 		log.Println("Successfully sent transcribed text")
 		mStatus.SetTitle("Ready")
-		isProcessing = false
+		setState(StateIdle)
 
-	} else {
+	} else if state == StateIdle {
+		// Transition to recording state
+		if !tryTransitionState(StateIdle, StateRecording) {
+			log.Println("Failed to transition to Recording state")
+			return
+		}
+
 		// Start recording
 		log.Println("Starting recording...")
 		startRecordingAnimation()
@@ -225,6 +296,7 @@ func handleHotkey() {
 			stopRecordingAnimation()
 			systray.SetTitle("◉")
 			mStatus.SetTitle("Error: Failed to start")
+			setState(StateIdle)
 			return
 		}
 
@@ -237,6 +309,8 @@ func handleHotkey() {
 		if err := sendTextToActiveWindow(recordingIndicator); err != nil {
 			log.Printf("Error sending recording indicator: %v", err)
 		}
+	} else {
+		log.Printf("Unexpected state in handleHotkey: %s", state)
 	}
 }
 
