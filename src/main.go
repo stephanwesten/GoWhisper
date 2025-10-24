@@ -28,7 +28,7 @@ func fn() {
 func onReady() {
 	// Set the menu bar icon and title
 	systray.SetTitle("◉")
-	systray.SetTooltip("GoWhisper - Press Cmd+Shift+H to record")
+	systray.SetTooltip("GoWhisper - Press Cmd+Shift+P to record")
 
 	// Initialize audio recorder
 	var err error
@@ -50,12 +50,12 @@ func onReady() {
 	systray.AddSeparator()
 	mQuit := systray.AddMenuItem("Quit", "Quit the application")
 
-	// Register global hotkey: Cmd+Shift+H
-	hk := hotkey.New([]hotkey.Modifier{hotkey.ModCmd, hotkey.ModShift}, hotkey.KeyH)
+	// Register global hotkey: Cmd+Shift+P
+	hk := hotkey.New([]hotkey.Modifier{hotkey.ModCmd, hotkey.ModShift}, hotkey.KeyP)
 	if err := hk.Register(); err != nil {
 		log.Printf("Failed to register hotkey: %v", err)
 	} else {
-		log.Println("Hotkey registered: Cmd+Shift+H")
+		log.Println("Hotkey registered: Cmd+Shift+P")
 	}
 
 	// Handle hotkey with channel to process one at a time
@@ -179,7 +179,7 @@ func handleHotkey() {
 			return
 		}
 
-		log.Println("Recording started - press Cmd+Shift+H again to stop")
+		log.Println("Recording started - press Cmd+Shift+P again to stop")
 	}
 }
 

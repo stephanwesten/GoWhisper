@@ -85,7 +85,7 @@ pkill -f "/exe/main" 2>/dev/null
 sleep 2
 if pgrep -f "GoWhisper" > /dev/null; then
     echo "✅ GoWhisper started successfully!"
-    echo "   Press Cmd+Shift+H to start/stop recording"
+    echo "   Press Cmd+Shift+P to start/stop recording"
     echo "   Logs: /tmp/go-whisper.log"
 else
     echo "❌ Failed to start GoWhisper"

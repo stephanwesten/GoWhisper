@@ -2,7 +2,7 @@
 
 A macOS menu bar application for voice-to-text transcription using OpenAI's Whisper model with GPU acceleration.
 
-Press **Cmd+Shift+H** to start/stop recording, and your speech will be transcribed and typed into the active window.
+Press **Cmd+Shift+P** to start/stop recording, and your speech will be transcribed and typed into the active window.
 
 ---
 
@@ -48,7 +48,7 @@ cd /path/to/go-whisper
 
 ## Features
 
-- 🎤 Push-to-talk recording with global hotkey (Cmd+Shift+H)
+- 🎤 Push-to-talk recording with global hotkey (Cmd+Shift+P)
 - 🧠 Local transcription using Whisper.cpp with Metal GPU acceleration
 - ⚡ Fast processing with multi-threading support
 - 🔄 Multiple consecutive recordings supported
@@ -118,9 +118,9 @@ cd go-whisper
 
 1. Launch the application using `./bin/run.sh`
 2. Look for "GW ●" in your menu bar
-3. Press **Cmd+Shift+H** to start recording (indicator changes to "GW 🔴")
+3. Press **Cmd+Shift+P** to start recording (indicator changes to "GW 🔴")
 4. Speak clearly into your microphone
-5. Press **Cmd+Shift+H** again to stop recording
+5. Press **Cmd+Shift+P** again to stop recording
 6. The transcribed text will be typed into your active window
 
 ## Permissions
