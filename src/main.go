@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os/exec"
 	"time"
@@ -12,11 +13,17 @@ import (
 	"golang.design/x/hotkey/mainthread"
 )
 
+const (
+	recordingIndicator  = "Recording"
+	processingIndicator = "Processing"
+)
+
 var (
 	recorder      *audio.Recorder
 	transcriber   *whisper.Transcriber
 	mStatus       *systray.MenuItem
 	stopAnimation chan bool
+	isProcessing  bool // Prevent re-entrant hotkey handling
 )
 
 func main() {
@@ -99,17 +106,40 @@ func onReady() {
 }
 
 func handleHotkey() {
+	// Ignore hotkey presses while already processing
+	if isProcessing {
+		log.Println("Already processing, ignoring hotkey")
+		return
+	}
+
 	if recorder.IsRecording() {
 		// Stop recording and transcribe
+		isProcessing = true
 		log.Println("Stopping recording...")
 		stopRecordingAnimation()
 		systray.SetTitle("◉")
 		mStatus.SetTitle("Processing...")
+		log.Println("⏳ Processing transcription...")
+
+		// Add delay before sending processing indicator to ensure the hotkey (Cmd+Shift+P)
+		// is fully released before AppleScript types. Without this delay, the modifier keys
+		// may still be pressed when keystroke injection occurs, causing incorrect characters.
+		time.Sleep(100 * time.Millisecond)
+
+		// Delete the "Recording" text (9 characters) before showing "Processing"
+		if err := sendBackspaces(len(recordingIndicator)); err != nil {
+			log.Printf("Error deleting recording indicator: %v", err)
+		}
+
+		if err := sendTextToActiveWindow(processingIndicator); err != nil {
+			log.Printf("Error sending processing indicator: %v", err)
+		}
 
 		samples, err := recorder.Stop()
 		if err != nil {
 			log.Printf("Error stopping recording: %v", err)
 			mStatus.SetTitle("Error: Failed to stop recording")
+			isProcessing = false
 			return
 		}
 
@@ -135,6 +165,7 @@ func handleHotkey() {
 		if len(samples) < audio.SampleRate/2 { // Less than 0.5 seconds
 			log.Println("Recording too short, ignoring")
 			mStatus.SetTitle("Ready")
+			isProcessing = false
 			return
 		}
 
@@ -146,19 +177,28 @@ func handleHotkey() {
 		if err != nil {
 			log.Printf("Error transcribing: %v", err)
 			mStatus.SetTitle("Error: Transcription failed")
+			log.Println("✗ Transcription failed")
+			isProcessing = false
 			return
 		}
 
-		log.Printf("Transcription: %s", text)
+		log.Printf("✓ Transcription: %s", text)
 
 		if text == "" {
 			log.Println("No speech detected")
 			mStatus.SetTitle("Ready")
+			isProcessing = false
 			return
 		}
 
-		// Send to active window
+		// Send transcribed text to active window
 		mStatus.SetTitle("Typing...")
+
+		// Delete the "Processing" text before typing the transcription
+		if err := sendBackspaces(len(processingIndicator)); err != nil {
+			log.Printf("Error deleting processing indicator: %v", err)
+		}
+
 		if err := sendTextToActiveWindow(text); err != nil {
 			log.Printf("Error sending text: %v", err)
 			mStatus.SetTitle("Error: Failed to type")
@@ -166,11 +206,13 @@ func handleHotkey() {
 			// Show user-friendly error dialog
 			errorMsg := "GoWhisper needs Accessibility permissions to type text.\n\nPlease go to:\nSystem Settings → Privacy & Security → Accessibility\n\nAnd add your Terminal app to the allowed list."
 			showErrorDialog("Accessibility Permission Required", errorMsg)
+			isProcessing = false
 			return
 		}
 
 		log.Println("Successfully sent transcribed text")
 		mStatus.SetTitle("Ready")
+		isProcessing = false
 
 	} else {
 		// Start recording
@@ -187,6 +229,14 @@ func handleHotkey() {
 		}
 
 		log.Println("Recording started - press Cmd+Shift+P again to stop")
+
+		// Add delay before sending indicator text to ensure the hotkey (Cmd+Shift+P)
+		// is fully released before AppleScript types. Without this delay, the modifier keys
+		// may still be pressed when keystroke injection occurs, causing incorrect characters.
+		time.Sleep(100 * time.Millisecond)
+		if err := sendTextToActiveWindow(recordingIndicator); err != nil {
+			log.Printf("Error sending recording indicator: %v", err)
+		}
 	}
 }
 
@@ -200,6 +250,32 @@ func onExit() {
 		transcriber.Close()
 	}
 	log.Println("GoWhisper menu bar app exiting")
+}
+
+// sendBackspaces sends the specified number of backspace key presses to delete text
+func sendBackspaces(count int) error {
+	if count <= 0 {
+		return nil
+	}
+
+	// AppleScript to send backspace keys (key code 51 is delete/backspace)
+	script := `
+		tell application "System Events"
+			repeat ` + fmt.Sprintf("%d", count) + ` times
+				key code 51
+			end repeat
+		end tell
+	`
+
+	cmd := exec.Command("osascript", "-e", script)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		log.Printf("AppleScript output: %s", string(output))
+		return err
+	}
+
+	log.Printf("Successfully sent %d backspaces", count)
+	return nil
 }
 
 // sendTextToActiveWindow sends text to the currently active window using AppleScript

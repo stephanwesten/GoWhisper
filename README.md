@@ -1,8 +1,12 @@
 # GoWhisper
 
-A macOS menu bar application for voice-to-text transcription using OpenAI's Whisper model with GPU acceleration.
+A MacOS menu bar application for voice-to-text transcription using OpenAI's Whisper model with GPU acceleration
+targeted at using terminal / Claude Code.
 
 Press **Cmd+Shift+P** to start/stop recording, and your speech will be transcribed and typed into the active window.
+
+DISCLAIMER: this is a hobby project and by no means professional software. Most of the code is vibe-coded. 
+There are not even unit-tests - which is also hard with an application like this. 
 
 ---
 
