@@ -37,8 +37,10 @@ func (s AppState) String() string {
 	case StateProcessing:
 		return "Processing"
 	default:
-		log.Fatalf("Unknown state: %d", s)
-		return "" // unreachable
+		// Log before panic to ensure it's captured
+		log.Printf("FATAL: Unknown state detected: %d (valid states: Idle=%d, Recording=%d, Processing=%d)",
+			s, StateIdle, StateRecording, StateProcessing)
+		panic(fmt.Sprintf("Unknown AppState: %d - this should never happen, indicates memory corruption or invalid cast", s))
 	}
 }
 
