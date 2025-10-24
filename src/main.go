@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os/exec"
+	"time"
 
 	"github.com/getlantern/systray"
 	"github.com/stephanwesten/go-whisper/src/audio"
@@ -12,9 +13,10 @@ import (
 )
 
 var (
-	recorder    *audio.Recorder
-	transcriber *whisper.Transcriber
-	mStatus     *systray.MenuItem
+	recorder      *audio.Recorder
+	transcriber   *whisper.Transcriber
+	mStatus       *systray.MenuItem
+	stopAnimation chan bool
 )
 
 func main() {
@@ -97,6 +99,7 @@ func handleHotkey() {
 	if recorder.IsRecording() {
 		// Stop recording and transcribe
 		log.Println("Stopping recording...")
+		stopRecordingAnimation()
 		systray.SetTitle("◉")
 		mStatus.SetTitle("Processing...")
 
@@ -169,11 +172,12 @@ func handleHotkey() {
 	} else {
 		// Start recording
 		log.Println("Starting recording...")
-		systray.SetTitle("🔴")
+		startRecordingAnimation()
 		mStatus.SetTitle("🎤 Recording...")
 
 		if err := recorder.Start(); err != nil {
 			log.Printf("Error starting recording: %v", err)
+			stopRecordingAnimation()
 			systray.SetTitle("◉")
 			mStatus.SetTitle("Error: Failed to start")
 			return
@@ -277,5 +281,39 @@ func getIconRecording() []byte {
 		0x01, 0x7c, 0x02, 0x5f, 0xc0, 0x37, 0xf0, 0x03, 0xfc, 0x01, 0xff, 0x00,
 		0x00, 0x00, 0xff, 0xff, 0xcd, 0x3d, 0x31, 0x5c, 0x8b, 0xc5, 0x01, 0x84,
 		0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82,
+	}
+}
+
+// startRecordingAnimation starts a blinking animation in the menu bar
+func startRecordingAnimation() {
+	stopAnimation = make(chan bool, 1)
+	go func() {
+		ticker := time.NewTicker(750 * time.Millisecond) // Blink every 750ms
+		defer ticker.Stop()
+
+		blinkState := false
+		for {
+			select {
+			case <-stopAnimation:
+				return
+			case <-ticker.C:
+				if blinkState {
+					systray.SetTitle("🔴") // Filled red circle
+				} else {
+					systray.SetTitle("⭕") // Hollow red circle
+				}
+				blinkState = !blinkState
+			}
+		}
+	}()
+}
+
+// stopRecordingAnimation stops the blinking animation
+func stopRecordingAnimation() {
+	if stopAnimation != nil {
+		select {
+		case stopAnimation <- true:
+		default:
+		}
 	}
 }
