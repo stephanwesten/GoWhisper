@@ -50,6 +50,9 @@ func onReady() {
 	mStatus = systray.AddMenuItem("Ready", "Current status")
 	mStatus.Disable()
 	systray.AddSeparator()
+	mHotkey := systray.AddMenuItem("⌘⇧P - Start/Stop Recording", "Press Cmd+Shift+P to toggle recording")
+	mHotkey.Disable()
+	systray.AddSeparator()
 	mQuit := systray.AddMenuItem("Quit", "Quit the application")
 
 	// Register global hotkey: Cmd+Shift+P
