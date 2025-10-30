@@ -1,12 +1,17 @@
 # GoWhisper
 
-A MacOS menu bar application for voice-to-text transcription using OpenAI's Whisper model with GPU acceleration
-targeted at using terminal / Claude Code.
+A macOS menu bar application for voice-to-text transcription using OpenAI's Whisper model with GPU acceleration, targeted at using terminal / Claude Code.
 
 Press **Cmd+Shift+P** to start/stop recording, and your speech will be transcribed and typed into the active window.
 
+**Platform Support**: Currently only tested on macOS (M1 Pro). Linux/Windows support is not tested.
+
+**Voice Commands**: Use special keywords to modify behavior:
+- Say **"clipboard [your text]"** to copy transcribed text to clipboard instead of typing
+- Say **"claude [your text]"** to have Claude AI rephrase your text for better grammar and clarity
+- Say **"clipboard claude [your text]"** (or reverse order) to rephrase with Claude AND copy to clipboard
+
 DISCLAIMER: this is a hobby project and by no means professional software. Most of the code is vibe-coded. 
-There are not even unit-tests - which is also hard with an application like this. 
 
 ---
 
@@ -54,20 +59,24 @@ cd /path/to/go-whisper
 
 - 🎤 Push-to-talk recording with global hotkey (Cmd+Shift+P)
 - 🧠 Local transcription using Whisper.cpp with Metal GPU acceleration
+- 🤖 Claude AI integration for text rephrasing and improvement
+- 📋 Clipboard mode for copying instead of typing
 - ⚡ Fast processing with multi-threading support
 - 🔄 Multiple consecutive recordings supported
 - 📝 Automatic text insertion into active window
 - 🔴 Visual recording indicator in menu bar
+- 🔕 Enable/disable hotkey toggle (useful during presentations)
 - ⚠️  User-friendly error dialogs
 
 ## Setup
 
 ### Prerequisites
 
-- macOS (tested on M1 Pro)
+- macOS (only tested on M1 Pro - other platforms not supported)
 - Homebrew
 - Go 1.21 or later
 - Xcode Command Line Tools
+- Claude CLI (optional - only needed for Claude rephrasing feature)
 
 ### Installation Steps
 
@@ -120,12 +129,53 @@ cd go-whisper
 
 ## Usage
 
+### Basic Recording
+
 1. Launch the application using `./bin/run.sh`
-2. Look for "GW ●" in your menu bar
-3. Press **Cmd+Shift+P** to start recording (indicator changes to "GW 🔴")
+2. Look for "◉" in your menu bar
+3. Press **Cmd+Shift+P** to start recording (indicator changes to blinking 🔴/⭕)
 4. Speak clearly into your microphone
 5. Press **Cmd+Shift+P** again to stop recording
 6. The transcribed text will be typed into your active window
+
+### Voice Command Examples
+
+**Normal transcription:**
+- Press Cmd+Shift+P
+- Say: "This is a test message"
+- Press Cmd+Shift+P
+- Result: "This is a test message" is typed into active window
+
+**Clipboard mode:**
+- Press Cmd+Shift+P
+- Say: "clipboard this is a test message"
+- Press Cmd+Shift+P
+- Result: "this is a test message" is copied to clipboard (not typed)
+
+**Claude rephrasing mode:**
+- Press Cmd+Shift+P
+- Say: "claude hey this is test message want to make better"
+- Press Cmd+Shift+P
+- Result: Claude rephrases to "Hey, this is a test message that I would like to improve." and types it
+
+**Combined mode (Claude + Clipboard):**
+- Press Cmd+Shift+P
+- Say: "clipboard claude fix grammar in this sentence"
+- Press Cmd+Shift+P
+- Result: Claude rephrases the text and copies it to clipboard (not typed)
+
+### Keyword Detection Rules
+
+- Keywords must appear in the **first 3 words** of your speech
+- Detection is **case-insensitive** (clipboard, Clipboard, CLIPBOARD all work)
+- Keywords can appear in **any order** when combined
+- Keywords are **automatically removed** from the final output
+
+### Menu Bar Controls
+
+- **⌘⇧P Menu Item**: Click to start/stop recording (same as hotkey)
+- **Disable/Enable Hotkey**: Toggle to temporarily disable the global hotkey (useful during Zoom presentations)
+- **Quit**: Exit the application
 
 ## Permissions
 
@@ -155,9 +205,11 @@ On first use, you'll need to grant:
 
 - **Audio Recording**: PortAudio for microphone capture (16kHz mono)
 - **Transcription**: Whisper.cpp with Metal GPU acceleration
+- **AI Rephrasing**: Claude CLI for text improvement (optional)
 - **UI**: systray for menu bar integration
 - **Hotkeys**: golang.design/x/hotkey for global keyboard shortcuts
 - **Text Input**: AppleScript for typing into active windows
+- **Clipboard**: github.com/atotto/clipboard for clipboard operations
 
 ## Development
 
