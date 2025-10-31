@@ -1,10 +1,12 @@
 # GoWhisper
 
-A macOS menu bar application for voice-to-text transcription using OpenAI's Whisper model with GPU acceleration, targeted at using terminal / Claude Code.
+A MacOS menu bar application for voice-to-text transcription using OpenAI's Whisper model with GPU acceleration, 
+targeted at using terminal / Claude Code.
 
 Press **Cmd+Shift+P** to start/stop recording, and your speech will be transcribed and typed into the active window.
+The letter P is chosen as it is close to the Enter key.
 
-**Platform Support**: Currently only tested on macOS (M1 Pro). Linux/Windows support is not tested.
+**Platform Support**: Currently only tested on MacOS (M1 Pro). Linux/Windows support is not tested.
 
 **Voice Commands**: Use special keywords to modify behavior:
 - Say **"clipboard [your text]"** to copy transcribed text to clipboard instead of typing
@@ -12,6 +14,9 @@ Press **Cmd+Shift+P** to start/stop recording, and your speech will be transcrib
 - Say **"clipboard claude [your text]"** (or reverse order) to rephrase with Claude AND copy to clipboard
 
 DISCLAIMER: this is a hobby project and by no means professional software. Most of the code is vibe-coded. 
+
+KNOWN ISSUES
+* Sometimes the hot key is incorrectly processed and for example a terminal inspector is shown.
 
 ---
 
@@ -166,7 +171,7 @@ cd go-whisper
 
 ### Keyword Detection Rules
 
-- Keywords must appear in the **first 3 words** of your speech
+- Keywords must appear in the **first 2 words** of your speech
 - Detection is **case-insensitive** (clipboard, Clipboard, CLIPBOARD all work)
 - Keywords can appear in **any order** when combined
 - Keywords are **automatically removed** from the final output
@@ -176,6 +181,40 @@ cd go-whisper
 - **⌘⇧P Menu Item**: Click to start/stop recording (same as hotkey)
 - **Disable/Enable Hotkey**: Toggle to temporarily disable the global hotkey (useful during Zoom presentations)
 - **Quit**: Exit the application
+
+## Stopping/Restarting the Application
+
+**IMPORTANT**: This is a menu bar application that runs in the background. Multiple instances may exist if you've built the app using different methods.
+
+**To reliably stop ALL instances:**
+```bash
+# Kill all go-whisper processes (works for all binary names)
+pkill -9 -f "go-whisper|GoWhisper"
+```
+
+**To verify all instances are stopped:**
+```bash
+ps aux | grep -E "go-whisper|GoWhisper" | grep -v grep
+```
+
+**Recommended restart workflow:**
+```bash
+# 1. Kill all instances
+pkill -9 -f "go-whisper|GoWhisper"
+
+# 2. Verify nothing is running (should return no results)
+ps aux | grep -E "go-whisper|GoWhisper" | grep -v grep
+
+# 3. Rebuild and run
+./build.sh
+./bin/run.sh
+```
+
+**Why multiple instances can occur:**
+- Running `go build -o go-whisper src/main.go` creates `./go-whisper` in the root directory
+- Running `./build.sh` creates `./bin/GoWhisper`
+- Both binaries can run simultaneously if not properly cleaned up
+- The `-f` flag in `pkill` matches the full command line, catching both naming variations
 
 ## Permissions
 

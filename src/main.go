@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
 	"strings"
 	"sync"
@@ -104,15 +105,22 @@ func onReady() {
 	// Register global hotkey: Cmd+Shift+P
 	hk = hotkey.New([]hotkey.Modifier{hotkey.ModCmd, hotkey.ModShift}, hotkey.KeyP)
 	if err := hk.Register(); err != nil {
-		log.Printf("Failed to register hotkey: %v", err)
-	} else {
-		log.Println("Hotkey registered: Cmd+Shift+P")
+		log.Printf("FATAL: Failed to register hotkey: %v", err)
+		// Show error dialog and exit - the app cannot function without the hotkey
+		showErrorDialog("GoWhisper - Fatal Error",
+			"Failed to register global hotkey Cmd+Shift+P.\n\n"+
+				"This may happen if another application is using the same shortcut.\n"+
+				"Please close conflicting applications and try again.")
+		os.Exit(1)
+		return // Never reached, but makes control flow clear
 	}
+	log.Println("Hotkey registered: Cmd+Shift+P")
 
 	// Handle hotkey with channel to process one at a time
 	triggerCh := make(chan struct{}, 1)
 
 	// Collect hotkey events (may fire multiple times)
+	// NOTE: This goroutine is only started after successful registration
 	go func() {
 		for {
 			<-hk.Keydown()
@@ -206,6 +214,11 @@ func toggleHotkey() {
 		state := getState()
 		if state == StateRecording {
 			log.Println("Stopping recording due to hotkey disable")
+
+			// CRITICAL: Set state to Idle BEFORE cleanup operations to prevent race condition
+			// This ensures no other goroutine can observe Recording state during cleanup
+			setState(StateIdle)
+
 			stopRecordingAnimation()
 			systray.SetTitle("○") // Hollow circle for disabled
 
@@ -220,7 +233,6 @@ func toggleHotkey() {
 				log.Printf("Error deleting recording indicator: %v", err)
 			}
 
-			setState(StateIdle)
 			mStatus.Hide()
 		} else {
 			systray.SetTitle("○") // Hollow circle for disabled
@@ -230,6 +242,7 @@ func toggleHotkey() {
 		// Set disabled state BEFORE unregistering to prevent race condition
 		setHotkeyEnabled(false)
 		mToggleHotkey.SetTitle("Enable Hotkey")
+		mHotkey.Disable() // Gray out the hotkey menu item
 
 		// Unregister hotkey
 		if err := hk.Unregister(); err != nil {
@@ -251,6 +264,7 @@ func toggleHotkey() {
 
 		log.Println("Hotkey registered successfully")
 		setHotkeyEnabled(true)
+		mHotkey.Enable() // Re-enable the hotkey menu item
 		systray.SetTitle("◉") // Remove disabled overlay
 		mStatus.Hide()
 		mToggleHotkey.SetTitle("Disable Hotkey")
@@ -316,9 +330,13 @@ func handleHotkey() {
 		var maxAmplitude float32
 		var sumSquared float64
 		for _, sample := range samples {
-			if abs := sample; abs < 0 {
+			// Calculate absolute value
+			abs := sample
+			if abs < 0 {
 				abs = -abs
-			} else if abs > maxAmplitude {
+			}
+			// Check if this is the maximum amplitude
+			if abs > maxAmplitude {
 				maxAmplitude = abs
 			}
 			sumSquared += float64(sample * sample)
@@ -570,14 +588,18 @@ func sendTextToActiveWindow(text string) error {
 	if err != nil {
 		log.Printf("AppleScript output: %s", string(output))
 		// Try to restore clipboard even if paste failed
-		clipboard.WriteAll(originalClipboard)
+		if restoreErr := clipboard.WriteAll(originalClipboard); restoreErr != nil {
+			log.Printf("Warning: Failed to restore clipboard after paste error: %v", restoreErr)
+		}
 		return err
 	}
 
 	// Restore original clipboard content after a short delay
 	go func() {
 		time.Sleep(100 * time.Millisecond)
-		clipboard.WriteAll(originalClipboard)
+		if err := clipboard.WriteAll(originalClipboard); err != nil {
+			log.Printf("Warning: Failed to restore clipboard in goroutine: %v", err)
+		}
 	}()
 
 	log.Printf("Successfully sent text: %s", text)
@@ -608,13 +630,14 @@ func stripPunctuation(word string) string {
 	return strings.Trim(word, ".,!?;:\"'()[]{}")
 }
 
-// containsClaude checks if text starts with "claude" keyword (case-insensitive)
+// containsClaude checks if text starts with "claude" or "clot" keyword (case-insensitive)
+// "clot" is a common Whisper misrecognition of "claude" when audio is unclear
 func containsClaude(text string) bool {
 	words := strings.Fields(strings.TrimSpace(text))
 	if len(words) == 0 {
 		return false
 	}
-	// Check first TWO words for "claude" to allow "clipboard claude" combinations
+	// Check first TWO words for "claude" or "clot" to allow "clipboard claude" combinations
 	// but avoid matching "When Claude is running" in natural speech
 	limit := 2
 	if len(words) < limit {
@@ -622,7 +645,7 @@ func containsClaude(text string) bool {
 	}
 	for i := 0; i < limit; i++ {
 		cleaned := strings.ToLower(stripPunctuation(words[i]))
-		if cleaned == "claude" {
+		if cleaned == "claude" || cleaned == "clot" {
 			return true
 		}
 	}
@@ -650,14 +673,15 @@ func containsClipboardKeyword(text string) bool {
 	return false
 }
 
-// removeCombinedKeywords removes both "claude" and "clipboard" from text (any order)
+// removeCombinedKeywords removes both "claude"/"clot" and "clipboard" from text (any order)
 func removeCombinedKeywords(text string) string {
 	words := strings.Fields(strings.TrimSpace(text))
 	var filtered []string
 
 	for _, word := range words {
 		cleaned := strings.ToLower(stripPunctuation(word))
-		if cleaned != "claude" && cleaned != "clipboard" {
+		// Remove "claude", "clot" (misrecognition), and "clipboard"
+		if cleaned != "claude" && cleaned != "clot" && cleaned != "clipboard" {
 			filtered = append(filtered, word)
 		}
 	}
@@ -686,11 +710,25 @@ func rephraseWithClaude(text string) (string, error) {
 	return rephrased, nil
 }
 
+// escapeAppleScriptString escapes special characters for safe use in AppleScript strings
+// This prevents AppleScript injection attacks
+func escapeAppleScriptString(s string) string {
+	// Escape backslashes first (must be done before escaping quotes)
+	s = strings.ReplaceAll(s, `\`, `\\`)
+	// Then escape double quotes
+	s = strings.ReplaceAll(s, `"`, `\"`)
+	return s
+}
+
 // showErrorDialog displays an error dialog to the user
 func showErrorDialog(title, message string) {
+	// Escape inputs to prevent AppleScript injection
+	safeTitle := escapeAppleScriptString(title)
+	safeMessage := escapeAppleScriptString(message)
+
 	// AppleScript to show a dialog
 	script := `
-		display dialog "` + message + `" with title "` + title + `" buttons {"OK"} default button "OK" with icon caution
+		display dialog "` + safeMessage + `" with title "` + safeTitle + `" buttons {"OK"} default button "OK" with icon caution
 	`
 
 	cmd := exec.Command("osascript", "-e", script)
@@ -701,6 +739,9 @@ func showErrorDialog(title, message string) {
 
 // startRecordingAnimation starts a blinking animation in the menu bar
 func startRecordingAnimation() {
+	// Stop any existing animation before starting a new one to prevent goroutine leaks
+	stopRecordingAnimation()
+
 	stopAnimation = make(chan bool, 1)
 	go func() {
 		ticker := time.NewTicker(750 * time.Millisecond) // Blink every 750ms
