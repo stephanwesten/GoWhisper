@@ -107,6 +107,15 @@ func onReady() {
 	systray.AddSeparator()
 	mToggleHotkey = systray.AddMenuItem("Disable Hotkey", "Temporarily disable the global hotkey")
 	systray.AddSeparator()
+
+	// Voice Commands help menu with submenus
+	mVoiceCommands := systray.AddMenuItem("Voice Commands Info", "Learn about special voice commands")
+	mVoiceCommands.AddSubMenuItem("Say 'claude [text]' - Rephrase with AI", "")
+	mVoiceCommands.AddSubMenuItem("Say 'clipboard [text]' - Copy to clipboard", "")
+	mVoiceCommands.AddSubMenuItem("Say 'claude clipboard' - Both actions", "")
+	mVoiceCommands.AddSubMenuItem("Note: 'clot' also works for 'claude'", "")
+
+	systray.AddSeparator()
 	mStatus = systray.AddMenuItem("", "Current operation status")
 	mStatus.Hide() // Hidden by default, shown during operations
 	systray.AddSeparator()
@@ -697,7 +706,8 @@ func rephraseWithClaude(text string) (string, error) {
 	systemPrompt := "You are a text refinement assistant. When given text, output ONLY the refined version without any explanation, formatting, or commentary. Just return the improved text directly."
 
 	// Use claude CLI with --print flag and system prompt
-	cmd := exec.Command("claude", "--print", "--system-prompt", systemPrompt, "-p", text)
+	// Use --strict-mcp-config with empty mcpServers to skip MCP plugins for faster startup
+	cmd := exec.Command("claude", "--print", "--strict-mcp-config", "--mcp-config", `{"mcpServers":{}}`, "--system-prompt", systemPrompt, "-p", text)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Printf("Claude CLI error: %v, output: %s", err, string(output))
