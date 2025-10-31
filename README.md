@@ -74,13 +74,13 @@ cd /path/to/go-whisper
 - 🔕 Enable/disable hotkey toggle (useful during presentations)
 - ⚠️  User-friendly error dialogs
 
-## Setup
+## Manual Setup
 
 ### Prerequisites
 
 - macOS (only tested on M1 Pro - other platforms not supported)
 - Homebrew
-- Go 1.21 or later
+- Go 1.24.0 or later
 - Xcode Command Line Tools
 - Claude CLI (optional - only needed for Claude rephrasing feature)
 
