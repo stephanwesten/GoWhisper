@@ -73,6 +73,14 @@ func fn() {
 	systray.Run(onReady, onExit)
 }
 
+// getModelPath returns the Whisper model path from environment or default
+func getModelPath() string {
+	if path := os.Getenv("GOWHISPER_MODEL"); path != "" {
+		return path
+	}
+	return "~/.go-whisper/models/ggml-small.en.bin"
+}
+
 func onReady() {
 	// Set the menu bar icon and title
 	systray.SetTitle("◉")
@@ -86,7 +94,9 @@ func onReady() {
 	}
 
 	// Initialize Whisper transcriber
-	transcriber, err = whisper.NewTranscriber("~/.go-whisper/models/ggml-small.en.bin")
+	modelPath := getModelPath()
+	log.Printf("Loading Whisper model from: %s", modelPath)
+	transcriber, err = whisper.NewTranscriber(modelPath)
 	if err != nil {
 		log.Fatalf("Failed to initialize transcriber: %v", err)
 	}
@@ -630,47 +640,40 @@ func stripPunctuation(word string) string {
 	return strings.Trim(word, ".,!?;:\"'()[]{}")
 }
 
-// containsClaude checks if text starts with "claude" or "clot" keyword (case-insensitive)
-// "clot" is a common Whisper misrecognition of "claude" when audio is unclear
-func containsClaude(text string) bool {
+// containsKeywordInFirstNWords checks if any of the given keywords appear in the first N words
+// This is used to detect command keywords while avoiding false positives in natural speech
+func containsKeywordInFirstNWords(text string, keywords []string, maxWords int) bool {
 	words := strings.Fields(strings.TrimSpace(text))
 	if len(words) == 0 {
 		return false
 	}
-	// Check first TWO words for "claude" or "clot" to allow "clipboard claude" combinations
-	// but avoid matching "When Claude is running" in natural speech
-	limit := 2
+
+	// Check only the first maxWords words
+	limit := maxWords
 	if len(words) < limit {
 		limit = len(words)
 	}
+
 	for i := 0; i < limit; i++ {
 		cleaned := strings.ToLower(stripPunctuation(words[i]))
-		if cleaned == "claude" || cleaned == "clot" {
-			return true
+		for _, keyword := range keywords {
+			if cleaned == keyword {
+				return true
+			}
 		}
 	}
 	return false
 }
 
+// containsClaude checks if text starts with "claude" or "clot" keyword (case-insensitive)
+// "clot" is a common Whisper misrecognition of "claude" when audio is unclear
+func containsClaude(text string) bool {
+	return containsKeywordInFirstNWords(text, []string{"claude", "clot"}, 2)
+}
+
 // containsClipboardKeyword checks if text starts with "clipboard" keyword (case-insensitive)
 func containsClipboardKeyword(text string) bool {
-	words := strings.Fields(strings.TrimSpace(text))
-	if len(words) == 0 {
-		return false
-	}
-	// Check first TWO words for "clipboard" to allow "claude clipboard" combinations
-	// but avoid matching "The clipboard contains" in natural speech
-	limit := 2
-	if len(words) < limit {
-		limit = len(words)
-	}
-	for i := 0; i < limit; i++ {
-		cleaned := strings.ToLower(stripPunctuation(words[i]))
-		if cleaned == "clipboard" {
-			return true
-		}
-	}
-	return false
+	return containsKeywordInFirstNWords(text, []string{"clipboard"}, 2)
 }
 
 // removeCombinedKeywords removes both "claude"/"clot" and "clipboard" from text (any order)
