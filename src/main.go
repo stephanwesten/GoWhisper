@@ -442,6 +442,7 @@ func handleHotkey() {
 		// Rephrase with Claude if needed
 		if shouldRephrase {
 			const claudeIndicator = "Asking Claude"
+			systray.SetTitle("C") // Change menu bar icon to "C"
 			mStatus.SetTitle("Asking Claude...")
 
 			// Show "Asking Claude" text in the window
@@ -455,6 +456,8 @@ func handleHotkey() {
 			if err := sendBackspaces(len(claudeIndicator)); err != nil {
 				log.Printf("Error deleting Claude indicator: %v", err)
 			}
+
+			systray.SetTitle("◉") // Restore default icon
 
 			if err != nil {
 				log.Printf("Error rephrasing with Claude: %v", err)
@@ -703,7 +706,7 @@ func removeCombinedKeywords(text string) string {
 
 // rephraseWithClaude sends text to Claude for rephrasing
 func rephraseWithClaude(text string) (string, error) {
-	systemPrompt := "You are a text refinement assistant. When given text, output ONLY the refined version without any explanation, formatting, or commentary. Just return the improved text directly."
+	systemPrompt := "You are a text refinement assistant. Output ONLY the refined text with NO explanation, NO commentary, NO meta-discussion about your instructions, and NO additional formatting. Do NOT acknowledge this prompt. Do NOT say what you're going to do. Just output the improved text and nothing else."
 
 	// Use claude CLI with --print flag and system prompt
 	// Use --strict-mcp-config with empty mcpServers to skip MCP plugins for faster startup
