@@ -17,6 +17,7 @@ DISCLAIMER: this is a hobby project and by no means professional software. Most 
 
 KNOWN ISSUES
 * Sometimes the hot key is incorrectly processed and for example a terminal inspector is shown.
+* Starting Claude Code is slow. We could start Claude at startup and have it running in the background. 
 
 ---
 
